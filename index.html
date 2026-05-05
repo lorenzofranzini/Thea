@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong Classico - Liceo Edition</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        canvas {
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            background-color: #000;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            text-align: center;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h1>PONG</h1>
+        <p>Usa il mouse o il touch per muovere la racchetta</p>
+    </div>
+
+    <canvas id="pongCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("pongCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Configurazione dimensioni
+        canvas.width = 800;
+        canvas.height = 400;
+
+        // Oggetti del gioco
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 10,
+            speed: 5,
+            velocityX: 5,
+            velocityY: 5,
+            color: "WHITE"
+        };
+
+        const user = {
+            x: 0,
+            y: (canvas.height - 100) / 2,
+            width: 10,
+            height: 100,
+            score: 0,
+            color: "WHITE"
+        };
+
+        const com = {
+            x: canvas.width - 10,
+            y: (canvas.height - 100) / 2,
+            width: 10,
+            height: 100,
+            score: 0,
+            color: "WHITE"
+        };
+
+        const net = {
+            x: (canvas.width - 2) / 2,
+            y: 0,
+            width: 2,
+            height: 10,
+            color: "WHITE"
+        };
+
+        // Disegno delle funzioni
+        function drawRect(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, w, h);
+        }
+
+        function drawArc(x, y, r, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawNet() {
+            for (let i = 0; i <= canvas.height; i += 15) {
+                drawRect(net.x, net.y + i, net.width, net.height, net.color);
+            }
+        }
+
+        function drawText(text, x, y) {
+            ctx.fillStyle = "#FFF";
+            ctx.font = "45px Arial";
+            ctx.fillText(text, x, y);
+        }
+
+        // Controllo utente (Mouse)
+        canvas.addEventListener("mousemove", getMousePos);
+        function getMousePos(evt) {
+            let rect = canvas.getBoundingClientRect();
+            user.y = evt.clientY - rect.top - user.height / 2;
+        }
+
+        // Collisioni
+        function collision(b, p) {
+            p.top = p.y;
+            p.bottom = p.y + p.height;
+            p.left = p.x;
+            p.right = p.x + p.width;
+
+            b.top = b.y - b.radius;
+            b.bottom = b.y + b.radius;
+            b.left = b.x - b.radius;
+            b.right = b.x + b.radius;
+
+            return p.left < b.right && p.top < b.bottom && p.right > b.left && p.bottom > b.top;
+        }
+
+        // Reset palla
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.velocityX = -ball.velocityX;
+            ball.speed = 5;
+        }
+
+        // Aggiornamento logica
+        function update() {
+            // Punteggio
+            if (ball.x - ball.radius < 0) {
+                com.score++;
+                resetBall();
+            } else if (ball.x + ball.radius > canvas.width) {
+                user.score++;
+                resetBall();
+            }
+
+            ball.x += ball.velocityX;
+            ball.y += ball.velocityY;
+
+            // AI Semplice per il computer
+            com.y += (ball.y - (com.y + com.height / 2)) * 0.1;
+
+            // Rimbalzo bordi sopra/sotto
+            if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+                ball.velocityY = -ball.velocityY;
+            }
+
+            // Controllo chi colpisce la palla
+            let player = (ball.x + ball.radius < canvas.width / 2) ? user : com;
+
+            if (collision(ball, player)) {
+                // Calcolo angolo di rimbalzo
+                let collidePoint = (ball.y - (player.y + player.height / 2));
+                collidePoint = collidePoint / (player.height / 2);
+                let angleRad = (Math.PI / 4) * collidePoint;
+
+                let direction = (ball.x + ball.radius < canvas.width / 2) ? 1 : -1;
+                ball.velocityX = direction * ball.speed * Math.cos(angleRad);
+                ball.velocityY = ball.speed * Math.sin(angleRad);
+
+                // Aumenta velocità ogni volta che si colpisce
+                ball.speed += 0.5;
+            }
+        }
+
+        // Rendering grafico
+        function render() {
+            drawRect(0, 0, canvas.width, canvas.height, "#000");
+            drawNet();
+            drawText(user.score, canvas.width / 4, canvas.height / 5);
+            drawText(com.score, 3 * canvas.width / 4, canvas.height / 5);
+            drawRect(user.x, user.y, user.width, user.height, user.color);
+            drawRect(com.x, com.y, com.width, com.height, com.color);
+            drawArc(ball.x, ball.y, ball.radius, ball.color);
+        }
+
+        function game() {
+            update();
+            render();
+        }
+
+        // Loop a 50 frame per secondo
+        const framePerSecond = 50;
+        let loop = setInterval(game, 1000 / framePerSecond);
+
+    </script>
+</body>
+</html>
