@@ -1,204 +1,256 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pong Classico - Liceo Edition</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: #222;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-        }
-        canvas {
-            border: 4px solid #fff;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-            background-color: #000;
-        }
-        #ui {
-            position: absolute;
-            top: 20px;
-            text-align: center;
-            pointer-events: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pong Moderno</title>
+
+<style>
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #dfe9f3, #ffffff);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* MENU */
+#menu {
+    position: absolute;
+    text-align: center;
+}
+
+h1 {
+    color: #2c3e50;
+}
+
+button {
+    padding: 12px 25px;
+    margin: 10px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6dd5ed, #2193b0);
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    transform: scale(1.08);
+}
+
+/* CANVAS */
+canvas {
+    display: none;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+/* RESET BUTTON */
+#resetBtn {
+    position: absolute;
+    bottom: 30px;
+    display: none;
+}
+</style>
 </head>
+
 <body>
 
-    <div id="ui">
-        <h1>PONG</h1>
-        <p>Usa il mouse o il touch per muovere la racchetta</p>
-    </div>
+<!-- MENU -->
+<div id="menu">
+    <h1>PONG</h1>
+    <p>Scegli difficoltà</p>
+    <button onclick="startGame(0.05)">Facile</button>
+    <button onclick="startGame(0.1)">Medio</button>
+    <button onclick="startGame(0.2)">Difficile</button>
+</div>
 
-    <canvas id="pongCanvas"></canvas>
+<canvas id="pongCanvas" width="800" height="400"></canvas>
 
-    <script>
-        const canvas = document.getElementById("pongCanvas");
-        const ctx = canvas.getContext("2d");
+<button id="resetBtn" onclick="resetGame()">Torna al menu</button>
 
-        // Configurazione dimensioni
-        canvas.width = 800;
-        canvas.height = 400;
+<script>
+const canvas = document.getElementById("pongCanvas");
+const ctx = canvas.getContext("2d");
 
-        // Oggetti del gioco
-        const ball = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            radius: 10,
-            speed: 5,
-            velocityX: 5,
-            velocityY: 5,
-            color: "WHITE"
-        };
+let aiLevel = 0.1;
+let running = false;
 
-        const user = {
-            x: 0,
-            y: (canvas.height - 100) / 2,
-            width: 10,
-            height: 100,
-            score: 0,
-            color: "WHITE"
-        };
+// OGGETTI
+let ball, user, com;
 
-        const com = {
-            x: canvas.width - 10,
-            y: (canvas.height - 100) / 2,
-            width: 10,
-            height: 100,
-            score: 0,
-            color: "WHITE"
-        };
+// INIT
+function init() {
+    ball = {
+        x: 400,
+        y: 200,
+        radius: 8,
+        speed: 5,
+        velocityX: 5,
+        velocityY: 5
+    };
 
-        const net = {
-            x: (canvas.width - 2) / 2,
-            y: 0,
-            width: 2,
-            height: 10,
-            color: "WHITE"
-        };
+    user = {
+        x: 10,
+        y: 150,
+        width: 12,
+        height: 100,
+        score: 0
+    };
 
-        // Disegno delle funzioni
-        function drawRect(x, y, w, h, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, w, h);
-        }
+    com = {
+        x: 778,
+        y: 150,
+        width: 12,
+        height: 100,
+        score: 0
+    };
+}
 
-        function drawArc(x, y, r, color) {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2, true);
-            ctx.closePath();
-            ctx.fill();
-        }
+// START
+function startGame(level) {
+    aiLevel = level;
+    init();
+    running = true;
 
-        function drawNet() {
-            for (let i = 0; i <= canvas.height; i += 15) {
-                drawRect(net.x, net.y + i, net.width, net.height, net.color);
-            }
-        }
+    document.getElementById("menu").style.display = "none";
+    canvas.style.display = "block";
+    document.getElementById("resetBtn").style.display = "block";
+}
 
-        function drawText(text, x, y) {
-            ctx.fillStyle = "#FFF";
-            ctx.font = "45px Arial";
-            ctx.fillText(text, x, y);
-        }
+// RESET
+function resetGame() {
+    running = false;
+    document.getElementById("menu").style.display = "block";
+    canvas.style.display = "none";
+    document.getElementById("resetBtn").style.display = "none";
+}
 
-        // Controllo utente (Mouse)
-        canvas.addEventListener("mousemove", getMousePos);
-        function getMousePos(evt) {
-            let rect = canvas.getBoundingClientRect();
-            user.y = evt.clientY - rect.top - user.height / 2;
-        }
+// MOUSE CONTROL
+canvas.addEventListener("mousemove", e => {
+    let rect = canvas.getBoundingClientRect();
+    user.y = e.clientY - rect.top - user.height / 2;
+});
 
-        // Collisioni
-        function collision(b, p) {
-            p.top = p.y;
-            p.bottom = p.y + p.height;
-            p.left = p.x;
-            p.right = p.x + p.width;
+// DISEGNI
+function drawRoundedRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+    ctx.fill();
+}
 
-            b.top = b.y - b.radius;
-            b.bottom = b.y + b.radius;
-            b.left = b.x - b.radius;
-            b.right = b.x + b.radius;
+function drawNet() {
+    ctx.setLineDash([10,10]);
+    ctx.strokeStyle = "#aaa";
+    ctx.beginPath();
+    ctx.moveTo(canvas.width/2, 0);
+    ctx.lineTo(canvas.width/2, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
 
-            return p.left < b.right && p.top < b.bottom && p.right > b.left && p.bottom > b.top;
-        }
+// UPDATE
+function update() {
+    ball.x += ball.velocityX;
+    ball.y += ball.velocityY;
 
-        // Reset palla
-        function resetBall() {
-            ball.x = canvas.width / 2;
-            ball.y = canvas.height / 2;
-            ball.velocityX = -ball.velocityX;
-            ball.speed = 5;
-        }
+    // AI
+    com.y += (ball.y - (com.y + com.height/2)) * aiLevel;
 
-        // Aggiornamento logica
-        function update() {
-            // Punteggio
-            if (ball.x - ball.radius < 0) {
-                com.score++;
-                resetBall();
-            } else if (ball.x + ball.radius > canvas.width) {
-                user.score++;
-                resetBall();
-            }
+    // BORDI
+    if (ball.y < 0 || ball.y > canvas.height)
+        ball.velocityY *= -1;
 
-            ball.x += ball.velocityX;
-            ball.y += ball.velocityY;
+    // PUNTI
+    if (ball.x < 0) {
+        com.score++;
+        resetBall();
+    }
+    if (ball.x > canvas.width) {
+        user.score++;
+        resetBall();
+    }
 
-            // AI Semplice per il computer
-            com.y += (ball.y - (com.y + com.height / 2)) * 0.1;
+    let player = ball.x < canvas.width/2 ? user : com;
 
-            // Rimbalzo bordi sopra/sotto
-            if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
-                ball.velocityY = -ball.velocityY;
-            }
+    if (
+        ball.x < player.x + player.width &&
+        ball.x > player.x &&
+        ball.y < player.y + player.height &&
+        ball.y > player.y
+    ) {
+        ball.velocityX *= -1;
+        ball.speed += 0.3;
+    }
+}
 
-            // Controllo chi colpisce la palla
-            let player = (ball.x + ball.radius < canvas.width / 2) ? user : com;
+function resetBall() {
+    ball.x = 400;
+    ball.y = 200;
+    ball.velocityX *= -1;
+    ball.speed = 5;
+}
 
-            if (collision(ball, player)) {
-                // Calcolo angolo di rimbalzo
-                let collidePoint = (ball.y - (player.y + player.height / 2));
-                collidePoint = collidePoint / (player.height / 2);
-                let angleRad = (Math.PI / 4) * collidePoint;
+// RENDER
+function render() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-                let direction = (ball.x + ball.radius < canvas.width / 2) ? 1 : -1;
-                ball.velocityX = direction * ball.speed * Math.cos(angleRad);
-                ball.velocityY = ball.speed * Math.sin(angleRad);
+    drawNet();
 
-                // Aumenta velocità ogni volta che si colpisce
-                ball.speed += 0.5;
-            }
-        }
+    // SCORE
+    ctx.fillStyle = "#2c3e50";
+    ctx.font = "bold 40px Segoe UI";
+    ctx.fillText(user.score, canvas.width/4, 60);
+    ctx.fillText(com.score, 3*canvas.width/4, 60);
 
-        // Rendering grafico
-        function render() {
-            drawRect(0, 0, canvas.width, canvas.height, "#000");
-            drawNet();
-            drawText(user.score, canvas.width / 4, canvas.height / 5);
-            drawText(com.score, 3 * canvas.width / 4, canvas.height / 5);
-            drawRect(user.x, user.y, user.width, user.height, user.color);
-            drawRect(com.x, com.y, com.width, com.height, com.color);
-            drawArc(ball.x, ball.y, ball.radius, ball.color);
-        }
+    // PADDLE
+    ctx.fillStyle = "#2c3e50";
+    ctx.shadowColor = "rgba(0,0,0,0.2)";
+    ctx.shadowBlur = 10;
 
-        function game() {
-            update();
-            render();
-        }
+    drawRoundedRect(user.x, user.y, user.width, user.height, 8);
+    drawRoundedRect(com.x, com.y, com.width, com.height, 8);
 
-        // Loop a 50 frame per secondo
-        const framePerSecond = 50;
-        let loop = setInterval(game, 1000 / framePerSecond);
+    ctx.shadowBlur = 0;
 
-    </script>
+    // BALL (glow)
+    let g = ctx.createRadialGradient(ball.x, ball.y, 2, ball.x, ball.y, 10);
+    g.addColorStop(0, "#3498db");
+    g.addColorStop(1, "#2980b9");
+
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+    ctx.fill();
+}
+
+// LOOP FLUIDO
+function loop() {
+    if (running) {
+        update();
+        render();
+    }
+    requestAnimationFrame(loop);
+}
+
+init();
+loop();
+</script>
+
 </body>
 </html>
