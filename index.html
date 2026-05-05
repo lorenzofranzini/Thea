@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pong Moderno</title>
+<title>Pong Colorato</title>
 
 <style>
 body {
     margin: 0;
-    background: linear-gradient(135deg, #dfe9f3, #ffffff);
+    background: linear-gradient(135deg, #ff9a9e, #fad0c4);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -20,18 +20,20 @@ body {
 #menu {
     position: absolute;
     text-align: center;
+    color: #fff;
 }
 
 h1 {
-    color: #2c3e50;
+    font-size: 60px;
+    margin-bottom: 10px;
 }
 
 button {
     padding: 12px 25px;
     margin: 10px;
     border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #6dd5ed, #2193b0);
+    border-radius: 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     font-size: 18px;
     cursor: pointer;
@@ -39,22 +41,21 @@ button {
 }
 
 button:hover {
-    transform: scale(1.08);
+    transform: scale(1.1);
 }
 
 /* CANVAS */
 canvas {
     display: none;
     border-radius: 20px;
-    background: rgba(255,255,255,0.6);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    background: linear-gradient(180deg, #1e1e2f, #2c2c54);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
 }
 
-/* RESET BUTTON */
+/* RESET */
 #resetBtn {
     position: absolute;
-    bottom: 30px;
+    bottom: 20px;
     display: none;
 }
 </style>
@@ -62,184 +63,165 @@ canvas {
 
 <body>
 
-<!-- MENU -->
 <div id="menu">
-    <h1>PONG</h1>
+    <h1>🌈 PONG</h1>
     <p>Scegli difficoltà</p>
-    <button onclick="startGame(0.05)">Facile</button>
-    <button onclick="startGame(0.1)">Medio</button>
-    <button onclick="startGame(0.2)">Difficile</button>
+    <button onclick="startGame(0.04)">Facile</button>
+    <button onclick="startGame(0.08)">Medio</button>
+    <button onclick="startGame(0.14)">Difficile</button>
 </div>
 
-<canvas id="pongCanvas" width="800" height="400"></canvas>
+<canvas id="game" width="800" height="400"></canvas>
 
-<button id="resetBtn" onclick="resetGame()">Torna al menu</button>
+<button id="resetBtn" onclick="resetGame()">🔙 Menu</button>
 
 <script>
-const canvas = document.getElementById("pongCanvas");
+const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let aiLevel = 0.1;
+let ai = 0.08;
 let running = false;
 
 // OGGETTI
 let ball, user, com;
+let trail = [];
 
 // INIT
 function init() {
     ball = {
         x: 400,
         y: 200,
-        radius: 8,
+        r: 8,
         speed: 5,
-        velocityX: 5,
-        velocityY: 5
+        vx: 5,
+        vy: 3
     };
 
-    user = {
-        x: 10,
-        y: 150,
-        width: 12,
-        height: 100,
-        score: 0
-    };
+    user = { x: 20, y: 150, w: 12, h: 100, score: 0 };
+    com = { x: 768, y: 150, w: 12, h: 100, score: 0 };
 
-    com = {
-        x: 778,
-        y: 150,
-        width: 12,
-        height: 100,
-        score: 0
-    };
+    trail = [];
 }
 
 // START
 function startGame(level) {
-    aiLevel = level;
+    ai = level;
     init();
     running = true;
 
-    document.getElementById("menu").style.display = "none";
+    menu.style.display = "none";
     canvas.style.display = "block";
-    document.getElementById("resetBtn").style.display = "block";
+    resetBtn.style.display = "block";
 }
 
 // RESET
 function resetGame() {
     running = false;
-    document.getElementById("menu").style.display = "block";
+    menu.style.display = "block";
     canvas.style.display = "none";
-    document.getElementById("resetBtn").style.display = "none";
+    resetBtn.style.display = "none";
 }
 
-// MOUSE CONTROL
+// MOUSE
 canvas.addEventListener("mousemove", e => {
     let rect = canvas.getBoundingClientRect();
-    user.y = e.clientY - rect.top - user.height / 2;
+    user.y = e.clientY - rect.top - user.h / 2;
 });
-
-// DISEGNI
-function drawRoundedRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.lineTo(x+w-r, y);
-    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-    ctx.lineTo(x+w, y+h-r);
-    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-    ctx.lineTo(x+r, y+h);
-    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-    ctx.lineTo(x, y+r);
-    ctx.quadraticCurveTo(x, y, x+r, y);
-    ctx.closePath();
-    ctx.fill();
-}
-
-function drawNet() {
-    ctx.setLineDash([10,10]);
-    ctx.strokeStyle = "#aaa";
-    ctx.beginPath();
-    ctx.moveTo(canvas.width/2, 0);
-    ctx.lineTo(canvas.width/2, canvas.height);
-    ctx.stroke();
-    ctx.setLineDash([]);
-}
 
 // UPDATE
 function update() {
-    ball.x += ball.velocityX;
-    ball.y += ball.velocityY;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // TRAIL
+    trail.push({x: ball.x, y: ball.y});
+    if (trail.length > 15) trail.shift();
 
     // AI
-    com.y += (ball.y - (com.y + com.height/2)) * aiLevel;
+    com.y += (ball.y - (com.y + com.h/2)) * ai;
 
     // BORDI
-    if (ball.y < 0 || ball.y > canvas.height)
-        ball.velocityY *= -1;
+    if (ball.y < 0 || ball.y > 400)
+        ball.vy *= -1;
 
     // PUNTI
     if (ball.x < 0) {
         com.score++;
         resetBall();
     }
-    if (ball.x > canvas.width) {
+    if (ball.x > 800) {
         user.score++;
         resetBall();
     }
 
-    let player = ball.x < canvas.width/2 ? user : com;
+    let p = ball.x < 400 ? user : com;
 
     if (
-        ball.x < player.x + player.width &&
-        ball.x > player.x &&
-        ball.y < player.y + player.height &&
-        ball.y > player.y
+        ball.x < p.x + p.w &&
+        ball.x > p.x &&
+        ball.y < p.y + p.h &&
+        ball.y > p.y
     ) {
-        ball.velocityX *= -1;
-        ball.speed += 0.3;
+        ball.vx *= -1.1;
+        ball.vy *= 1.05;
     }
 }
 
 function resetBall() {
     ball.x = 400;
     ball.y = 200;
-    ball.velocityX *= -1;
-    ball.speed = 5;
+    ball.vx = -ball.vx;
+    ball.vy = 3;
+    trail = [];
 }
 
 // RENDER
 function render() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(0,0,800,400);
 
-    drawNet();
+    // LINEA CENTRALE
+    ctx.setLineDash([8,8]);
+    ctx.strokeStyle = "#888";
+    ctx.beginPath();
+    ctx.moveTo(400,0);
+    ctx.lineTo(400,400);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     // SCORE
-    ctx.fillStyle = "#2c3e50";
+    ctx.fillStyle = "#fff";
     ctx.font = "bold 40px Segoe UI";
-    ctx.fillText(user.score, canvas.width/4, 60);
-    ctx.fillText(com.score, 3*canvas.width/4, 60);
+    ctx.fillText(user.score, 200, 50);
+    ctx.fillText(com.score, 600, 50);
 
-    // PADDLE
-    ctx.fillStyle = "#2c3e50";
-    ctx.shadowColor = "rgba(0,0,0,0.2)";
-    ctx.shadowBlur = 10;
+    // PADDLE COLORATI
+    ctx.fillStyle = "#00f5d4";
+    ctx.fillRect(user.x, user.y, user.w, user.h);
 
-    drawRoundedRect(user.x, user.y, user.width, user.height, 8);
-    drawRoundedRect(com.x, com.y, com.width, com.height, 8);
+    ctx.fillStyle = "#f15bb5";
+    ctx.fillRect(com.x, com.y, com.w, com.h);
 
-    ctx.shadowBlur = 0;
+    // TRAIL
+    for (let i = 0; i < trail.length; i++) {
+        let t = trail[i];
+        ctx.fillStyle = `rgba(255,255,255,${i/trail.length})`;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, ball.r, 0, Math.PI*2);
+        ctx.fill();
+    }
 
-    // BALL (glow)
+    // BALL
     let g = ctx.createRadialGradient(ball.x, ball.y, 2, ball.x, ball.y, 10);
-    g.addColorStop(0, "#3498db");
-    g.addColorStop(1, "#2980b9");
+    g.addColorStop(0, "#fff");
+    g.addColorStop(1, "#00bbf9");
 
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
     ctx.fill();
 }
 
-// LOOP FLUIDO
+// LOOP
 function loop() {
     if (running) {
         update();
